@@ -56,8 +56,9 @@ LGD = LitDiffusion.load_from_checkpoint(ckpt, diffusion=diffusion)
 dataset = torch.tensor(galaxy_images_cropped_downsampled).unsqueeze(1).float()
 train_loader = utils.data.DataLoader(dataset, batch_size=100, shuffle=True)
 
+epochs = 0
 checkpoint_callback = ModelCheckpoint(monitor="train_loss")
-trainer = pl.Trainer(gpus=-1, max_epochs=50, strategy='ddp_find_unused_parameters_false', callbacks=[checkpoint_callback], limit_train_batches=50)
+trainer = pl.Trainer(gpus=-1, max_epochs=epochs, strategy='ddp_find_unused_parameters_false', callbacks=[checkpoint_callback], limit_train_batches=50)
 trainer.fit(model=LGD, train_dataloaders=train_loader)
 
 
@@ -65,11 +66,13 @@ trainer.fit(model=LGD, train_dataloaders=train_loader)
 diffusion = LGD.diffusion.cuda()
 diffusion.eval()
 
-sampled_images = diffusion.sample(batch_size = 9).squeeze().cpu().detach().numpy()
+sampled_images = diffusion.sample(batch_size = 8).squeeze().cpu().detach().numpy()
+real_images = galaxy_images_cropped_downsampled[np.random.randint(len(galaxy_images_cropped_downsampled), size=8)]
+images = np.concatenate([sampled_images, real_images], axis=0)
 
 from mpl_toolkits.axes_grid1 import ImageGrid
 fig = plt.figure(figsize=(9., 9.))
-grid = ImageGrid(fig, 111, nrows_ncols=(3, 3),axes_pad=0.1,)
-for ax, im in zip(grid, sampled_images):
+grid = ImageGrid(fig, 111, nrows_ncols=(4, 4),axes_pad=0.1,)
+for ax, im in zip(grid, images):
     ax.imshow(im, cmap='magma')
 plt.savefig('results.png')
